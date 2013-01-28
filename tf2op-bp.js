@@ -14,16 +14,22 @@ jQuery.noConflict();
 
 (function($) {
     var prices = {};
+    var priceElements = [];
     
     var PriceElement = function(price) {
+        this.price = price;
         this.el = $('<div></div>')
             .attr({class: 'price'})
-            .append('<p>' + price + '</p>');
+            .append('<p>' + this.price + '</p>');
     }
     
     PriceElement.prototype = {
         getDOMElement:  function() {
             return $(this.el);
+        },
+        updatePrice:    function(price) {
+            this.price = price;
+            $(this.el).empty().append('<p>' + this.price + '</p>');
         }
     };
     
@@ -42,7 +48,7 @@ jQuery.noConflict();
     
     var getItemData = function(dataHash) {
         var item = dataHash.split(',');
-        //console.log(item);
+        
         //Item is a wildcard item.
         if(item[1] >= 90000) {
             if(item[1] == 90000) {
@@ -74,7 +80,6 @@ jQuery.noConflict();
     var getUnusualEffect = function(url) {
         var effect = url.toString().split('/');
         effect = effect[effect.length-1].split('.');
-        //console.log(effect);
         
         return effect[0];
     }
@@ -85,8 +90,6 @@ jQuery.noConflict();
         var keyValue = prices[5021][6][0].value;
         var billsValue = prices[126][6][0].value;
         var budsValue = prices[143][6][0].value;
-        
-        console.log('key value ' + keyValue + '\nbills value ' + billsValue + '\nbuds value ' + budsValue);
         
         if(value > keyValue && value < billsValue) {
             value = value / keyValue;
@@ -123,6 +126,11 @@ jQuery.noConflict();
         
         console.log('getting data');
         
+        $('.item').each(function(index) {
+            priceElements[index] = new PriceElement('loading');
+            $(this).prepend(priceElements[index].getDOMElement());
+        });
+
         GM_xmlhttpRequest({
             url: 'http://backpack.tf/api/IGetPrices/v2',
             method: 'GET',
@@ -150,7 +158,9 @@ jQuery.noConflict();
                     
                     //If the item is truthy, add a DOM element with it's price
                     if(item) {
-                        $(this).prepend(new PriceElement(convertCurrency(item.value)).getDOMElement());
+                        console.log(priceElements[index]);
+                        priceElements[index].updatePrice(convertCurrency(item.value));
+                        //$(this).prepend(priceElements[index].price = convertCurrency(item.value)).getDOMElement());
                     }
                 });
             },
