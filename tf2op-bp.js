@@ -30,6 +30,9 @@ jQuery.noConflict();
         updatePrice:    function(price) {
             this.price = price;
             $(this.el).empty().append('<p>' + this.price + '</p>');
+        },
+        removeElement:  function() {
+            $(this.el).remove();
         }
     };
     
@@ -48,10 +51,13 @@ jQuery.noConflict();
     
     var getItemData = function(dataHash) {
         var item = dataHash.split(',');
-        
+
         //Item is a wildcard item.
         if(item[1] >= 90000) {
-            if(item[1] == 90000) {
+            if(item[1] == 90001) {
+                return { value: 'game' };
+            }
+            else if(item[1] == 90000) {
                 return { value: 'offer' };
             }
             else if(item[1] == 90003) {
@@ -60,9 +66,15 @@ jQuery.noConflict();
             else if(item[1] == 90002) {
                 return { value: '$$$' };
             }
-            
-            return { value: '0.00' };
+
+            return;
         }
+
+        //Item is a game
+        if(item[0] == 753) {
+            return { value: 'gift' };
+        }
+
         //Item is for DOTA2
         if(item[0] == 570) {
             return;
@@ -71,7 +83,7 @@ jQuery.noConflict();
         if(item[2] == '5') {
             return searchItem(item, item[3]);
         }
-        
+
         return searchItem(item);
     }
     
@@ -121,7 +133,7 @@ jQuery.noConflict();
     $(document).ready(function() {
         
         GM_addStyle(
-            ".price { position: absolute; min-width: 50%; background-color: #161514; border-bottom-right-radius: 4px; border-top-left-radius: 7px; padding: 2px;}" +
+            ".price { position: absolute; min-width: 50%; background-color: #161514; border-bottom-right-radius: 4px; border-top-left-radius: 7px; padding: 2px 4px;}" +
             ".price > p { margin: 0; text-align: center; } ");
         
         console.log('getting data');
@@ -136,7 +148,7 @@ jQuery.noConflict();
             method: 'GET',
             onload:     function(data) {
                 prices = $.parseJSON(data.responseText).response.prices;
-                console.log(prices);
+                //console.log(prices);
                 
                 $('.item').each(function(index) {
                     var dataHash =$(this).attr('data-hash');
@@ -157,11 +169,17 @@ jQuery.noConflict();
                     var item = getItemData(dataHash);
                     
                     //If the item is truthy, add a DOM element with it's price
-                    if(item) {
+                   if(item) {
                         console.log(priceElements[index]);
+                        var price = convertCurrency(item.value);
+
+                        console.log(price);
+
                         priceElements[index].updatePrice(convertCurrency(item.value));
-                        //$(this).prepend(priceElements[index].price = convertCurrency(item.value)).getDOMElement());
-                    }
+                   }
+                   else {
+                        priceElements[index].removeElement();
+                   }
                 });
             },
             onerror:    function(data) {
