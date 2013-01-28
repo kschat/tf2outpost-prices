@@ -48,8 +48,10 @@ jQuery.noConflict();
     }
     
     var getItemData = function(dataHash) {
+        //Breaks up the data-hash into an array and maps the 3rd value
         var item = dataHash.split(',');
-
+        item[1] = mapDefindexValue(item[1]);
+        
         //Item is a wildcard item.
         if(item[1] >= 90000) {
             if(item[1] == 90001) {
@@ -156,6 +158,14 @@ jQuery.noConflict();
         return Math.round((new Date()).getTime() / 1000);
     }
     
+    var mapDefindexValue = function(value) {
+        if(typeof defindexMapping[value] != 'undefined') {
+            return defindexMapping[value];
+        }
+        
+        return value;
+    }
+    
     var loadUI = function() {
         $('.item').each(function(index) {
             dataHash =  $(this).attr('data-hash');
@@ -198,10 +208,55 @@ jQuery.noConflict();
     var priceElements = [];
     var dataHash = undefined;
     
+    //Contains a list of mappings for items that are merged in the price list by backpack.tf
+    var defindexMapping = {
+        0: 190,
+        1: 191,
+        2: 192,
+        3: 193,
+        4: 194,
+        5: 195,
+        6: 196,
+        7: 197,
+        8: 198,
+        9: 199,
+        10: 199,
+        11: 199,
+        12: 199,
+        13: 200,
+        14: 201,
+        15: 202,
+        16: 203,
+        17: 204,
+        18: 205,
+        19: 206,
+        20: 207,
+        21: 208,
+        22: 209,
+        23: 209,
+        24: 210,
+        25: 737,
+        29: 211,
+        30: 212,
+        160: 294,
+        735: 736,
+        831: 810,
+        832: 811,
+        833: 812,
+        834: 813,
+        835: 814,
+        836: 815,
+        837: 816,
+        838: 817,
+        5999: 6000,
+        2093: 5020
+    };
+    
     $(document).ready(function() {
         //Sets the style for the price elements
         GM_addStyle(
-            ".price { position: absolute; min-width: 50%; background-color: #161514; border-bottom-right-radius: 4px; border-top-left-radius: 7px; padding: 2px 4px;}" +
+            ".price { position: absolute; min-width: 50%; background-color: #161514; border-bottom-right-radius: 4px; border-top-left-radius: 7px; padding: 2px 4px;" +
+            "filter: alpha(opacity=70); -moz-opacity: 0.7; -khtml-opacity: 0.7; opacity: 0.7; }" +
             ".price > p { margin: 0; text-align: center; } ");
         
         //Iterates through each item element and creates a price element containing the text 'loading'
