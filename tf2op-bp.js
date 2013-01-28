@@ -66,6 +66,9 @@ jQuery.noConflict();
             else if(item[1] == 90002) {
                 return { value: '$$$' };
             }
+            else if(item[1] == 90004) {
+                return { value: '0.11 ref' };
+            }
 
             return;
         }
@@ -100,7 +103,6 @@ jQuery.noConflict();
         if(isNaN(value) || !value.toFixed) return value;
         
         var keyValue = prices[5021][6][0].value;
-        var billsValue = prices[126][6][0].value;
         var budsValue = prices[143][6][0].value;
         
         if(value > keyValue && value < billsValue) {
@@ -109,14 +111,6 @@ jQuery.noConflict();
                 return value.toFixed(2) + ' key';
             }
             return value.toFixed(2) + ' keys';
-        }
-        
-        if(value > billsValue && value < budsValue) {
-            value = value / billsValue;
-            if(value == 1) {
-                return value.toFixed(2) + ' bill';
-            }
-            return value.toFixed(2) + ' bills';
         }
         
         if(value > budsValue) {
@@ -137,10 +131,15 @@ jQuery.noConflict();
             ".price > p { margin: 0; text-align: center; } ");
         
         console.log('getting data');
+        var dataHash = undefined;
         
         $('.item').each(function(index) {
-            priceElements[index] = new PriceElement('loading');
-            $(this).prepend(priceElements[index].getDOMElement());
+            dataHash =  $(this).attr('data-hash');
+            
+            if(dataHash) {
+                priceElements[index] = new PriceElement('loading');
+                $(this).prepend(priceElements[index].getDOMElement());
+            }
         });
 
         GM_xmlhttpRequest({
@@ -151,35 +150,38 @@ jQuery.noConflict();
                 //console.log(prices);
                 
                 $('.item').each(function(index) {
-                    var dataHash =$(this).attr('data-hash');
+                    dataHash =  $(this).attr('data-hash');
                     
-                    //Test to see if the item is uncraftable. Needs to be done because
-                    //backpack.tf decided that 600 would be a good alteration to the id system.
-                    if($(this).hasClass('uncraftable')) {
-                        dataHash = dataHash.replace(/6$/, '600');
+                    if(dataHash) {
+                        //Test to see if the item is uncraftable. Needs to be done because
+                        //backpack.tf decided that 600 would be a good alteration to the id system.
+                        if($(this).hasClass('uncraftable')) {
+                            dataHash = dataHash.replace(/6$/, '600');
+                        }
+                        
+                        //If the item has a style attribute then we know the unusual has an effect
+                        if($(this).attr('style')) {
+                            dataHash += ',' + getUnusualEffect($(this).attr('style'));
+                        }
+                        
+                        
+                        //Gets the item data for the current item
+                        var item = getItemData(dataHash);
+                        
+                        //If the item is truthy, add a DOM element with it's price
+                       if(item) {
+                            //console.log(priceElements[index]);
+                            var price = convertCurrency(item.value);
+    
+                            //console.log(price);
+    
+                            priceElements[index].updatePrice(convertCurrency(item.value));
+                       }
+                       else {
+                            priceElements[index].removeElement();
+                       }
                     }
                     
-                    //If the item has a style attribute then we know the unusual has an effect
-                    if($(this).attr('style')) {
-                        dataHash += ',' + getUnusualEffect($(this).attr('style'));
-                    }
-                    
-                    
-                    //Gets the item data for the current item
-                    var item = getItemData(dataHash);
-                    
-                    //If the item is truthy, add a DOM element with it's price
-                   if(item) {
-                        console.log(priceElements[index]);
-                        var price = convertCurrency(item.value);
-
-                        console.log(price);
-
-                        priceElements[index].updatePrice(convertCurrency(item.value));
-                   }
-                   else {
-                        priceElements[index].removeElement();
-                   }
                 });
             },
             onerror:    function(data) {
