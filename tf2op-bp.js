@@ -13,8 +13,6 @@
 jQuery.noConflict();
 
 (function($) {
-    var prices = {};
-    var priceElements = [];
     
     var PriceElement = function(price) {
         this.price = price;
@@ -124,15 +122,89 @@ jQuery.noConflict();
         return value.toFixed(2) + ' ref';
     }
     
+    var setPriceList = function(list) {
+        GM_setValue('itemList', JSON.stringify(list));
+    }
+
+    var getPriceList = function() {
+        try {
+            return JSON.parse(GM_getValue('itemList'));
+        }
+        catch(ex) {
+            return;
+        }
+    }
+    
+    var getLastPriceUpdate = function() {
+        try {
+            return GM_getValue('lastUpdate');   
+        }
+        catch(ex) {
+            return;
+        }
+    }
+
+    var setLastPriceUpdate = function(time) {
+        GM_setValue('lastUpdate', time);
+    }
+    
+    var getHoursPassed = function(time1, time2) {
+        return (time1 - time2) / 60 / 60;
+    }
+    
+    var getUnixCurrentTime = function() {
+        return Math.round((new Date()).getTime() / 1000);
+    }
+    
+    var loadUI = function() {
+        $('.item').each(function(index) {
+            dataHash =  $(this).attr('data-hash');
+            
+            if(dataHash) {
+                //Test to see if the item is uncraftable. Needs to be done because
+                //backpack.tf decided that 600 would be a good alteration to the id system.
+                if($(this).hasClass('uncraftable')) {
+                    dataHash = dataHash.replace(/6$/, '600');
+                }
+                
+                //If the item has a style attribute then we know the unusual has an effect
+                if($(this).attr('style')) {
+                    dataHash += ',' + getUnusualEffect($(this).attr('style'));
+                }
+                
+                
+                //Gets the item data for the current item
+                var item = getItemData(dataHash);
+                
+                //If the item is truthy, add a DOM element with it's price
+               if(item) {
+                    //console.log(priceElements[index]);
+                    var price = convertCurrency(item.value);
+
+                    //console.log(price);
+
+                    priceElements[index].updatePrice(convertCurrency(item.value));
+               }
+               else {
+                    priceElements[index].removeElement();
+               }
+            }
+        });
+    }
+    
+    //GM_deleteValue('itemList');
+    var prices = getPriceList();
+    var lastUpdate = getLastPriceUpdate();
+    var priceElements = [];
+    var dataHash = undefined;
+    
     $(document).ready(function() {
-        
+        //Sets the style for the price elements
         GM_addStyle(
             ".price { position: absolute; min-width: 50%; background-color: #161514; border-bottom-right-radius: 4px; border-top-left-radius: 7px; padding: 2px 4px;}" +
             ".price > p { margin: 0; text-align: center; } ");
         
-        console.log('getting data');
-        var dataHash = undefined;
-        
+        //Iterates through each item element and creates a price element containing the text 'loading'
         $('.item').each(function(index) {
             dataHash =  $(this).attr('data-hash');
             
@@ -141,52 +213,29 @@ jQuery.noConflict();
                 $(this).prepend(priceElements[index].getDOMElement());
             }
         });
-
-        GM_xmlhttpRequest({
-            url: 'http://backpack.tf/api/IGetPrices/v2',
-            method: 'GET',
-            onload:     function(data) {
-                prices = $.parseJSON(data.responseText).response.prices;
-                //console.log(prices);
-                
-                $('.item').each(function(index) {
-                    dataHash =  $(this).attr('data-hash');
+        
+        //Determines if the cached information is there or out of date
+        if(typeof prices == 'undefined' || typeof lastUpdate == 'undefined' || getHoursPassed(getUnixCurrentTime(), lastUpdate) >= 1) {
+            GM_xmlhttpRequest({
+                url: 'http://backpack.tf/api/IGetPrices/v2',
+                method: 'GET',
+                onload:     function(data) {
                     
-                    if(dataHash) {
-                        //Test to see if the item is uncraftable. Needs to be done because
-                        //backpack.tf decided that 600 would be a good alteration to the id system.
-                        if($(this).hasClass('uncraftable')) {
-                            dataHash = dataHash.replace(/6$/, '600');
-                        }
-                        
-                        //If the item has a style attribute then we know the unusual has an effect
-                        if($(this).attr('style')) {
-                            dataHash += ',' + getUnusualEffect($(this).attr('style'));
-                        }
-                        
-                        
-                        //Gets the item data for the current item
-                        var item = getItemData(dataHash);
-                        
-                        //If the item is truthy, add a DOM element with it's price
-                       if(item) {
-                            //console.log(priceElements[index]);
-                            var price = convertCurrency(item.value);
-    
-                            //console.log(price);
-    
-                            priceElements[index].updatePrice(convertCurrency(item.value));
-                       }
-                       else {
-                            priceElements[index].removeElement();
-                       }
-                    }
+                    //Sets the prices and last time prices were updated to the response from the server
+                    setPriceList($.parseJSON(data.responseText).response.prices);
+                    setLastPriceUpdate($.parseJSON(data.responseText).response.current_time);
+                    prices = getPriceList();
                     
-                });
-            },
-            onerror:    function(data) {
-                $('#header').after('<div></div>').attr({class: 'error'}).append('<p>There was an error connecting to the backpack.tf server.</p>');
-            }
-        });
+                    //Loads the price elements
+                    loadUI();
+                },
+                onerror:    function(data) {
+                    $('#header').after('<div></div>').attr({class: 'error'}).append('<p>There was an error connecting to the backpack.tf server.</p>');
+                }
+            });
+        }
+        else {
+            loadUI();
+        }
     });
 })(jQuery);
