@@ -105,7 +105,7 @@ jQuery.noConflict();
         var keyValue = prices[5021][6][0].value;
         var budsValue = prices[143][6][0].value;
         
-        if(value > keyValue && value < billsValue) {
+        if(value > keyValue && value < budsValue) {
             value = value / keyValue;
             if(value == 1) {
                 return value.toFixed(2) + ' key';
